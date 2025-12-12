@@ -1,0 +1,7 @@
+# downloaded files
+data
+
+# python stuff
+.venv
+.pypy_cache
+__pycache__
