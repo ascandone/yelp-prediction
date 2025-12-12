@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from dataframes import df_final
+import dataframes
 from YelpFeatureDataset import YelpFeatureDataset
 
 
@@ -54,7 +54,7 @@ def run(
     print("--- Fast MIL Training on Pre-computed Features ---")
 
     # Prepare Data
-    df = df_final.collect()
+    df = dataframes.q_features.collect()
     median = df["stars"].median()
     print(f"Dataset Size: {len(df)} businesses")
     print(f"Median Stars: {median}")

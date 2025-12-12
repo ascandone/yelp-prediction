@@ -11,7 +11,7 @@ class YelpFeatureDataset(Dataset):
         self,
         dataframe,
         features_dict: dict,
-        max_photos=YelpFeatureDataset.DEFAULT_MAX_PHOTOS,
+        max_photos=DEFAULT_MAX_PHOTOS,
     ):
         self.features_dict = features_dict
         self.max_photos = max_photos
