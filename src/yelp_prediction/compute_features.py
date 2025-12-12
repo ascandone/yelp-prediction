@@ -11,7 +11,7 @@ import dataframes
 BATCH_SIZE = 64  # Bigger batch size for inference since no gradients
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 OUTPUT_DIR = Path("data/features")
-OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
 
 DEFAULT_TRANSFORM = transforms.Compose(
     [
@@ -61,12 +61,12 @@ def collate_fn(batch):
     return torch.stack(imgs), pids
 
 
-def run():
+def run(*, save_to_disk: bool = False):
     print(f"Using device: {DEVICE}")
 
     # 1. Load Data
     print("Loading photo list...")
-    df_photos = pl.scan_ndjson(PHOTOS_DIR / "photos.json").collect()
+    df_photos = pl.scan_ndjson(dataframes.PHOTOS_DIR / "photos.json").collect()
     print(f"Found {len(df_photos)} photos to process.")
 
     # 2. Setup Model (Backbone Only)
@@ -118,4 +118,12 @@ def run():
                 features_dict[pid] = features[i].cpu().clone()
 
     print(f"\nDone! Extracted {len(features_dict)} features in memory.")
+
+    if save_to_disk:
+        out_path = OUTPUT_DIR / "features.pt"
+        OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+        print(f"Saving features to {out_path}...")
+        torch.save(features_dict, out_path)
+        print("Saved.")
+
     return features_dict
