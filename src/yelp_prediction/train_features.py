@@ -46,6 +46,8 @@ def run(
     epochs=20,
     batch_size=128,
     lr=0.001,
+    max_photos=3,
+    criterion=nn.MSELoss(),
 ):
     """
     Train a MIL model on pre-computed features (see compute_features.py)
@@ -66,14 +68,22 @@ def run(
 
     # Loaders
     train_loader = DataLoader(
-        YelpFeatureDataset(train_df, features_dict),
+        YelpFeatureDataset(
+            train_df,
+            features_dict,
+            max_photos=max_photos,
+        ),
         batch_size=batch_size,
         shuffle=True,
         num_workers=2,
     )
 
     val_loader = DataLoader(
-        YelpFeatureDataset(val_df, features_dict),
+        YelpFeatureDataset(
+            val_df,
+            features_dict,
+            max_photos=max_photos,
+        ),
         batch_size=batch_size,
         shuffle=False,
         num_workers=2,
@@ -82,7 +92,6 @@ def run(
     # Model Setup
     model = MILModel(median_stars=median).to(DEVICE)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-    criterion = nn.MSELoss()
 
     # Train Loop
     best_mae = float("inf")
