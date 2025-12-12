@@ -79,7 +79,7 @@ def main():
             total_loss += loss.item()
             pbar.set_postfix({"loss": f"{loss.item():.4f}"})
 
-        print(f"Epoch {epoch+1} Avg Loss: {total_loss/len(train_loader):.4f}")
+        print(f"\nEpoch {epoch+1} Avg Loss: {total_loss/len(train_loader):.4f}")
 
         # --- QUICK EVAL ---
         model.eval()
