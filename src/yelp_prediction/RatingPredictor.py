@@ -1,4 +1,3 @@
-# WARNING: vibe coded
 import torch
 from torchvision import models
 import torch.nn as nn
