@@ -24,18 +24,18 @@ def run(
     Train a MIL model on pre-computed features (see compute_features.py)
     """
 
-    print("--- Fast MIL Training on Pre-computed Features ---")
-
-    # Prepare Data
+    # Stats
     df = dataframes.q_features.collect()
     median = df["stars"].median()
+    baseline_mae = (df["stars"] - median).abs().mean()
+    stdev = df["stars"].std()
+
     avg = df["stars"].mean()
     print(f"Dataset Size: {len(df)} businesses")
-    print(f"Median Stars: {median}")
-    print(f"Avg Stars: {avg}")
+    print(f"Median Stars: {median:.2f} (baseline mae: {baseline_mae:.2f})")
+    print(f"Avg Stars: {avg:.2f} (stdev: {stdev:.2f})")
 
     # Split
-
     np.random.seed(42)
     mask = np.random.rand(len(df)) < 0.8
     train_df = df.filter(mask)
