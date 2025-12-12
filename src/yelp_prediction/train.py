@@ -20,7 +20,7 @@ def main():
     median_stars = df["stars"].median()
     baseline_mae = (df["stars"] - median_stars).abs().mean()
 
-    print(f"Baseline to beat: {baseline_mae:.4f} (median: {median_stars})")
+    print(f"Baseline to beat: {baseline_mae:.2f} (median: {median_stars})")
 
     model = RatingPredictor(
         median_stars=median_stars,
