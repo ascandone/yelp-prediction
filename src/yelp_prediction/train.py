@@ -1,3 +1,7 @@
+"""
+DEPRECATED: Use compute_features and train_features instead
+"""
+
 import numpy as np
 import torch
 from dataframes import df_final, PHOTOS_DIR
@@ -123,7 +127,7 @@ class RatingPredictor(nn.Module):
 
 
 def main():
-    df = df_final
+    df = q_features.collect()
 
     median_stars = df["stars"].median()
     baseline_mae = (df["stars"] - median_stars).abs().mean()

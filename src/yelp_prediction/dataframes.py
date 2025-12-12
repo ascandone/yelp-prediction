@@ -1,3 +1,8 @@
+"""
+Dataframes and queries representing the raw dataset,
+and a query with the features computed
+"""
+
 import polars as pl
 from pathlib import Path
 
@@ -34,7 +39,7 @@ q_exact_stars = (
     .agg(pl.col("stars").mean().alias("exact_stars"))
 )
 
-df_final = (
+q_features = (
     q_businesses.filter(pl.col("categories").str.contains("Restaurants"))
     .join(q_photos_agg, on="business_id", how="inner")
     .join(q_exact_stars, on="business_id", how="inner")
@@ -51,5 +56,4 @@ df_final = (
     .with_columns(
         [pl.col("photo_ids").fill_null([]), pl.col("photo_count").fill_null(0)]
     )
-    .collect()
 )

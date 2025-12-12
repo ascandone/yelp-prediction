@@ -61,7 +61,12 @@ def collate_fn(batch):
     return torch.stack(imgs), pids
 
 
-def run(*, save_to_disk: bool = False):
+def run(*, save_to_disk: bool = True):
+    """
+    Extract features from photos and return them as a dictionary.
+    By default (save_to_disk option), save the dictionary to disk.
+    """
+
     print(f"Using device: {DEVICE}")
 
     # 1. Load Data

@@ -47,10 +47,14 @@ def run(
     batch_size=128,
     lr=0.001,
 ):
+    """
+    Train a MIL model on pre-computed features (see compute_features.py)
+    """
+
     print("--- Fast MIL Training on Pre-computed Features ---")
 
     # Prepare Data
-    df = df_final
+    df = df_final.collect()
     median = df["stars"].median()
     print(f"Dataset Size: {len(df)} businesses")
     print(f"Median Stars: {median}")
