@@ -8,12 +8,20 @@ from YelpFeatureDataset import YelpFeatureDataset
 
 
 class MILModel(nn.Module):
-    def __init__(self, median_stars=4.0):
+    def __init__(
+        self,
+        *,
+        median_stars=4.0,
+        input_dim=1280,
+    ):
         super().__init__()
 
         # Simple Regression Head
         self.head = nn.Sequential(
-            nn.Linear(1280, 512), nn.ReLU(), nn.Dropout(0.2), nn.Linear(512, 1)
+            nn.Linear(input_dim, 512),
+            nn.ReLU(),
+            nn.Dropout(0.2),
+            nn.Linear(512, 1),
         )
 
         # Exact match to RatingPredictor.py Logic
@@ -23,11 +31,9 @@ class MILModel(nn.Module):
         nn.init.constant_(self.head[-1].bias, initial_bias)
 
     def forward(self, x):
-        # x shape: [Batch, K_Photos, 1280]
-
         # 1. MEAN POOLING (The "Bag" Aggregation)
         # Average across the K photos dimension
-        bag_feature = torch.mean(x, dim=1)  # -> [Batch, 1280]
+        bag_feature = torch.mean(x, dim=1)
 
         # 2. Regression
         raw_output = self.head(bag_feature)
@@ -58,10 +64,14 @@ def run(
     # Prepare Data
     df = dataframes.q_features.collect()
     median = df["stars"].median()
+    avg = df["stars"].mean()
     print(f"Dataset Size: {len(df)} businesses")
     print(f"Median Stars: {median}")
+    print(f"Avg Stars: {avg}")
 
     # Split
+
+    np.random.seed(42)
     mask = np.random.rand(len(df)) < 0.8
     train_df = df.filter(mask)
     val_df = df.filter(~mask)
@@ -122,8 +132,9 @@ def run(
                 errors.extend(torch.abs(preds - targets).cpu().numpy())
 
         val_mae = np.mean(errors)
+        val_rmse = np.sqrt(np.mean(np.square(errors)))
         print(
-            f"Epoch {epoch+1:02d} | Train Loss: {avg_loss:.4f} | Val MAE: {val_mae:.4f}"
+            f"Epoch {epoch+1:02d} | Train Loss: {avg_loss:.4f} | Val MAE: {val_mae:.4f} | Val RMSE: {val_rmse:.4f}"
         )
 
         if val_mae < best_mae:
