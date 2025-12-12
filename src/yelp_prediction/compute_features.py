@@ -5,7 +5,7 @@ from PIL import Image
 from pathlib import Path
 from tqdm import tqdm
 import polars as pl
-from dataframes import PHOTOS_DIR
+import dataframes
 
 # --- CONFIG ---
 BATCH_SIZE = 64  # Bigger batch size for inference since no gradients
@@ -13,28 +13,30 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 OUTPUT_DIR = Path("data/features")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
+DEFAULT_TRANSFORM = transforms.Compose(
+    [
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ]
+)
 
-# --- DATASET ---
+
 class RawPhotoDataset(Dataset):
     """
     Simple dataset to just iterate over all photos for extraction.
     Does NOT transform into bags. 1 item = 1 photo.
     """
 
-    def __init__(self, photo_df: pl.DataFrame, photo_dir: Path):
+    def __init__(
+        self,
+        photo_df: pl.DataFrame,
+        photo_dir: Path,
+        transform=DEFAULT_TRANSFORM,
+    ):
         self.photo_ids = photo_df["photo_id"].to_list()
         self.photo_dir = photo_dir
-
-        # Standard ImageNet transform
-        self.transform = transforms.Compose(
-            [
-                transforms.Resize((224, 224)),
-                transforms.ToTensor(),
-                transforms.Normalize(
-                    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
-                ),
-            ]
-        )
+        self.transform = transform
 
     def __len__(self):
         return len(self.photo_ids)
@@ -80,7 +82,10 @@ def run():
     pool = torch.nn.AdaptiveAvgPool2d(1)
 
     # 3. Setup Loader
-    dataset = RawPhotoDataset(df_photos, PHOTOS_DIR / "photos")
+    dataset = RawPhotoDataset(
+        df_photos,
+        dataframes.PHOTOS_DIR / "photos",
+    )
     loader = DataLoader(
         dataset,
         batch_size=BATCH_SIZE,

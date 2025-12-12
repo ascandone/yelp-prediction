@@ -5,7 +5,6 @@ from dataframes import df_final, PHOTOS_DIR
 from torch.utils.data import DataLoader
 from YelpBagDataset import YelpBagDataset
 import torch.nn as nn
-import multiprocessing
 from tqdm import tqdm
 
 BATCH_SIZE = 32  # T4 handles 32 easily with frozen backbone
