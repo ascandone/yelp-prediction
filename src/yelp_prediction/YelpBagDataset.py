@@ -4,7 +4,7 @@ import torch
 from torch.utils.data import Dataset
 from torchvision import transforms
 import numpy as np
-from PIL import Image  # TODO use Pillow, the currently maintained fork
+from PIL import Image
 from pathlib import Path
 
 
