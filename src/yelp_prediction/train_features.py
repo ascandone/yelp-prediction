@@ -118,8 +118,3 @@ def run(features_dict: dict):
             torch.save(model.state_dict(), "best_mil_model.pth")
 
     print(f"\nTraining Complete. Best Validation MAE: {best_mae:.4f}")
-
-
-if __name__ == "__main__":
-    print("This script is meant to be run from main notebook with passed features.")
-    # For testing, you would mock features_dict
