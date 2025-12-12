@@ -3,17 +3,8 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from pathlib import Path
-
 from dataframes import df_final
 from YelpFeatureDataset import YelpFeatureDataset
-
-# --- CONFIG ---
-BATCH_SIZE = 128  # Can be large, tensors are small
-LR = 0.001
-EPOCHS = 20
-FEATURE_DIR = Path("data/features")
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 class MILModel(nn.Module):
@@ -46,7 +37,16 @@ class MILModel(nn.Module):
         return torch.sigmoid(raw_output) * 4 + 1
 
 
-def run(features_dict: dict):
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
+def run(
+    features_dict: dict,
+    *,
+    epochs=20,
+    batch_size=128,
+    lr=0.001,
+):
     print("--- Fast MIL Training on Pre-computed Features ---")
 
     # Prepare Data
@@ -63,27 +63,27 @@ def run(features_dict: dict):
     # Loaders
     train_loader = DataLoader(
         YelpFeatureDataset(train_df, features_dict),
-        batch_size=BATCH_SIZE,
+        batch_size=batch_size,
         shuffle=True,
         num_workers=2,
     )
 
     val_loader = DataLoader(
         YelpFeatureDataset(val_df, features_dict),
-        batch_size=BATCH_SIZE,
+        batch_size=batch_size,
         shuffle=False,
         num_workers=2,
     )
 
     # Model Setup
     model = MILModel(median_stars=median).to(DEVICE)
-    optimizer = torch.optim.Adam(model.parameters(), lr=LR)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     criterion = nn.MSELoss()
 
     # Train Loop
     best_mae = float("inf")
 
-    for epoch in range(EPOCHS):
+    for epoch in range(epochs):
         model.train()
         total_loss = 0
 
