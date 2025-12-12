@@ -30,7 +30,7 @@ class YelpBagDataset(Dataset):
         transform=DEFAULT_TRANSFORM,
     ):
         self.photo_dir = photo_dir
-        self.data = dataframe
+        self.data = dataframe.to_dicts()
         self.transform = transform
 
         self.placeholder = torch.zeros(3, 224, 224)
