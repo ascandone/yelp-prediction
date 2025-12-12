@@ -1,3 +1,4 @@
+from typing import Callable
 import torch
 from torch.utils.data import Dataset
 import numpy as np

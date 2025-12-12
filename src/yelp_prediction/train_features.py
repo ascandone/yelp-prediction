@@ -66,6 +66,12 @@ def run(
     )
 
     # Model Setup
+    input_dim = 1280
+    if len(features_dict) > 0:
+        first_val = next(iter(features_dict.values()))
+        input_dim = first_val.shape[0]
+        print(f"Detected feature dimension: {input_dim}")
+
     model = MILModel(median_stars=median, input_dim=input_dim).to(DEVICE)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
