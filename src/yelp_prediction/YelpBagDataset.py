@@ -1,5 +1,3 @@
-# WARNING: vibe coded
-
 import torch
 from torch.utils.data import Dataset
 from torchvision import transforms
@@ -8,10 +6,9 @@ from PIL import Image
 from pathlib import Path
 
 
-MAX_PHOTOS = 3  # Number of photos to sample per business
+DEFAULT_MAX_PHOTOS = 3  # Number of photos to sample per business
 
 
-# TODO where should this belong to?
 # Standard ImageNet stats
 DEFAULT_TRANSFORM = transforms.Compose(
     [
@@ -28,15 +25,12 @@ class YelpBagDataset(Dataset):
         dataframe,
         photo_dir: Path,
         transform=DEFAULT_TRANSFORM,
+        max_photos=DEFAULT_MAX_PHOTOS,
     ):
         self.photo_dir = photo_dir
         self.data = dataframe.to_dicts()
         self.transform = transform
-
-        self.placeholder = torch.zeros(3, 224, 224)
-
-    def _read_photo(self):
-        pass
+        self.max_photos = max_photos
 
     def __len__(self):
         return len(self.data)
@@ -47,27 +41,23 @@ class YelpBagDataset(Dataset):
         label = torch.tensor(row["stars"], dtype=torch.float32)
 
         # 1. SAMPLING: Pick K photos (Randomly sample if > K, repeat if < K)
-        if len(photo_ids) >= MAX_PHOTOS:
-            selected = np.random.choice(photo_ids, MAX_PHOTOS, replace=False)
+        if len(photo_ids) >= self.max_photos:
+            selected = np.random.choice(photo_ids, self.max_photos, replace=False)
         else:
-            selected = np.random.choice(photo_ids, MAX_PHOTOS, replace=True)
-
-        # 2. LOAD IMAGES
-        images = []
-        for pid in selected:
-            try:
-                with Image.open(self.photo_dir / f"{pid}.jpg") as img:
-                    img = img.convert("RGB")
-                    if self.transform:
-                        img = self.transform(img)
-                    images.append(img)
-            except Exception:
-                # TODO use a neutral transformer
-                # TODO emit warnings
-                # Fallback if image is missing/corrupt
-                # a black placeholder image
-                placeholder = torch.zeros(3, 224, 224)
-                images.append(placeholder)
+            selected = np.random.choice(photo_ids, self.max_photos, replace=True)
 
         # Stack into [3, 3, 224, 224] tensor
-        return torch.stack(images), label
+        return torch.stack([self._load_photo(pid) for pid in selected]), label
+
+    def _load_photo(self, pid):
+        try:
+            with Image.open(self.photo_dir / f"{pid}.jpg") as img:
+                img = img.convert("RGB")
+                if self.transform:
+                    img = self.transform(img)
+                return img
+        except Exception:
+            # TODO use a neutral tensor
+            # TODO emit warning
+            # Fallback with a black placeholder image if image is missing/corrupt
+            return torch.zeros(3, 224, 224)
