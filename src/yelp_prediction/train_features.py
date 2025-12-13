@@ -99,11 +99,13 @@ def run(
 
         val_mae = np.mean(errors)
         val_rmse = np.sqrt(np.mean(np.square(errors)))
+        is_best_score = val_mae < best_mae
+        best_score_label = " | Best score" if is_best_score and epoch > 0 else ""
         print(
-            f"Epoch {epoch+1:02d} | Train Loss: {avg_loss:.4f} | Val MAE: {val_mae:.4f} | Val RMSE: {val_rmse:.4f}"
+            f"Epoch {epoch+1:02d} | Train Loss: {avg_loss:.4f} | Val MAE: {val_mae:.4f} | Val RMSE: {val_rmse:.4f}{best_score_label}"
         )
 
-        if val_mae < best_mae:
+        if is_best_score:
             best_mae = val_mae
             torch.save(model.state_dict(), "best_mil_model.pth")
 
