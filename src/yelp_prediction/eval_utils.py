@@ -10,15 +10,16 @@ import torch
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 
-# Support both:
-# - package imports:   from yelp_prediction import eval_utils
-# - direct execution:  python src/yelp_prediction/plot_predictions.py
+# Preferred: package import (works in notebooks if 'src' is on sys.path)
 try:  # pragma: no cover
-    from . import dataframes
-    from .MilModel import MILModel
-except ImportError:  # pragma: no cover
-    import dataframes  # type: ignore
-    from MilModel import MILModel  # type: ignore
+    from yelp_prediction import dataframes
+    from yelp_prediction.MilModel import MILModel
+except ModuleNotFoundError:  # pragma: no cover
+    # Fallback: run as a script from repo root
+    #   py src\yelp_prediction\plot_predictions.py
+    from src.yelp_prediction import dataframes  # type: ignore
+    from src.yelp_prediction.MilModel import MILModel  # type: ignore
+
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

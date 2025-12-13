@@ -1,59 +1,46 @@
-"""
-Dataframes and queries representing the raw dataset,
-and a query with the features computed
-"""
-
-import polars as pl
+import os
 from pathlib import Path
+import polars as pl
 
-DATA_DIR = Path("data")
+def _find_repo_root() -> Path:
+    here = Path(__file__).resolve()
+    candidates = [
+        Path(os.environ.get("YELP_REPO_ROOT", "")) if os.environ.get("YELP_REPO_ROOT") else None,
+        here.parents[2],            # .../src/yelp_prediction -> repo root
+        Path.cwd(),
+        Path.cwd().parent,
+    ]
+    for c in candidates:
+        if c is None:
+            continue
+        if (c / "src" / "yelp_prediction").exists():
+            return c
+    return Path.cwd()
+
+REPO_ROOT = _find_repo_root()
+DATA_DIR = Path(os.environ.get("YELP_DATA_DIR", str(REPO_ROOT / "data")))
 
 JSON_DIR = DATA_DIR / "dataset-json"
 PATH_REVIEWS = JSON_DIR / "yelp_academic_dataset_review.json"
 PATH_BUSINESS = JSON_DIR / "yelp_academic_dataset_business.json"
 
 PHOTOS_DIR = DATA_DIR / "dataset-photos"
+PATH_PHOTOS = PHOTOS_DIR / "photos.json"
 
+def assert_data_available() -> None:
+    required = [PATH_BUSINESS, PATH_REVIEWS, PATH_PHOTOS]
+    missing = [p for p in required if not p.exists()]
+    if missing:
+        lines = "\n".join([f" - {p}" for p in missing])
+        raise FileNotFoundError(
+            "Missing Yelp dataset files:\n"
+            f"{lines}\n\n"
+            "Expected them under: <repo>/data/...\n"
+            "Download the dataset (or set YELP_DATA_DIR to your data folder) and re-run."
+        )
+
+assert_data_available()
 
 q_businesses = pl.scan_ndjson(PATH_BUSINESS)
 q_reviews = pl.scan_ndjson(PATH_REVIEWS)
-
-
-q_photos = pl.scan_ndjson(PHOTOS_DIR / "photos.json")
-
-# Queries
-
-q_photos_agg = q_photos.group_by("business_id").agg(
-    [
-        pl.col("photo_id").alias("photo_ids"),
-        pl.col("label").alias("photo_labels"),
-        pl.len().alias("photo_count"),
-    ]
-)
-
-
-q_exact_stars = (
-    q_reviews.lazy()
-    .select([pl.col("business_id"), pl.col("stars")])
-    .group_by("business_id")
-    .agg(pl.col("stars").mean().alias("exact_stars"))
-)
-
-q_features = (
-    q_businesses.filter(pl.col("categories").str.contains("Restaurants"))
-    .join(q_photos_agg, on="business_id", how="inner")
-    .join(q_exact_stars, on="business_id", how="inner")
-    .select(
-        # other interesting fields to select:
-        # name, categories, attributes.RestaurantsPriceRange2, latitude/longitude, city, state, (etc)
-        pl.col("business_id"),
-        # pl.col("stars"),
-        pl.col("exact_stars").alias("stars"),
-        pl.col("review_count"),
-        pl.col("photo_count"),
-        pl.col("photo_ids"),
-    )
-    .with_columns(
-        [pl.col("photo_ids").fill_null([]), pl.col("photo_count").fill_null(0)]
-    )
-)
+q_photos = pl.scan_ndjson(PATH_PHOTOS)
