@@ -1,9 +1,8 @@
 import torch
 from torch.utils.data import DataLoader
-from torchvision import models, transforms
+from torchvision import models
 from pathlib import Path
 from tqdm import tqdm
-import polars as pl
 import dataframes
 from dataset import RawPhotoDataset
 
@@ -19,14 +18,7 @@ def _collate_fn(batch):
     return torch.stack(imgs), pids
 
 
-def run(*, save_to_disk: bool = True):
-    """
-    Extract features from photos and return them as a dictionary.
-    By default (save_to_disk option), save the dictionary to disk.
-    """
-
-    print(f"Using device: {DEVICE}")
-
+def _setup_resnet():
     # Setup Model (Backbone Only)
     full_model = models.efficientnet_v2_s(
         weights=models.EfficientNet_V2_S_Weights.DEFAULT,
@@ -53,7 +45,6 @@ def run(*, save_to_disk: bool = True):
     # Inference Loop
     print("Starting extraction...")
     features_dict = {}
-
     with torch.no_grad():
         for imgs, pids in tqdm(loader, desc="Extracting Features"):
             if len(imgs) == 0:
@@ -65,6 +56,19 @@ def run(*, save_to_disk: bool = True):
             for i, pid in enumerate(pids):
                 # Save as CPU tensor to save GPU memory
                 features_dict[pid] = features[i].cpu().clone()
+
+    return features_dict
+
+
+def run(*, save_to_disk: bool = True):
+    """
+    Extract features from photos and return them as a dictionary.
+    By default (save_to_disk option), save the dictionary to disk.
+    """
+
+    print(f"Using device: {DEVICE}")
+
+    features_dict = _setup_resnet()
 
     print(f"\nDone! Extracted {len(features_dict)} features in memory.")
 
