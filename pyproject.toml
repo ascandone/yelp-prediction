@@ -25,3 +25,6 @@ pythonpath = ["src"]
 
 [tool.poetry]
 package-mode = false
+
+[tool.pyright]
+extraPaths = ["./src/yelp_prediction"]
