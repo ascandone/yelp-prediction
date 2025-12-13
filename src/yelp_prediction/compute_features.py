@@ -13,7 +13,7 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 OUTPUT_DIR = Path("data/features")
 
 
-def collate_fn(batch):
+def _collate_fn(batch):
     """Stack batch"""
     imgs, pids = zip(*batch)
     return torch.stack(imgs), pids
@@ -28,13 +28,11 @@ def run(*, save_to_disk: bool = True):
     print(f"Using device: {DEVICE}")
 
     # Setup Model (Backbone Only)
-    print("Loading EfficientNetV2-S...")
     full_model = models.efficientnet_v2_s(
-        weights=models.EfficientNet_V2_S_Weights.DEFAULT
+        weights=models.EfficientNet_V2_S_Weights.DEFAULT,
     )
-    backbone = full_model.features
-    backbone = backbone.to(DEVICE)
-    backbone.eval()  # Eval mode is critical for BatchNorm/Dropout
+    backbone = full_model.features.to(DEVICE)
+    backbone.eval()
 
     # Global pooling layer to flatten [B, 1280, 7, 7] -> [B, 1280]
     pool = torch.nn.AdaptiveAvgPool2d(1)
@@ -49,7 +47,7 @@ def run(*, save_to_disk: bool = True):
         batch_size=BATCH_SIZE,
         shuffle=False,
         num_workers=2,
-        collate_fn=collate_fn,
+        collate_fn=_collate_fn,
     )
 
     # Inference Loop
