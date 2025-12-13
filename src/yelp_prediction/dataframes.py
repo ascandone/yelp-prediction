@@ -21,6 +21,8 @@ q_reviews = pl.scan_ndjson(PATH_REVIEWS)
 
 q_photos = pl.scan_ndjson(PHOTOS_DIR / "photos.json")
 
+q_restaurants = q_businesses.filter(pl.col("categories").str.contains("Restaurants"))
+
 # Queries
 
 q_photos_agg = q_photos.group_by("business_id").agg(
@@ -40,8 +42,7 @@ q_exact_stars = (
 )
 
 q_features = (
-    q_businesses.filter(pl.col("categories").str.contains("Restaurants"))
-    .join(q_photos_agg, on="business_id", how="inner")
+    q_restaurants.join(q_photos_agg, on="business_id", how="inner")
     .join(q_exact_stars, on="business_id", how="inner")
     .select(
         # other interesting fields to select:
