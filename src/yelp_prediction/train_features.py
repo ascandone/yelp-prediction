@@ -1,11 +1,11 @@
 import numpy as np
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader, WeightedRandomSampler
+from torch.utils.data import DataLoader
 from tqdm import tqdm
 import dataframes
-from YelpFeatureDataset import YelpFeatureDataset
-from MilModel import MILModel
+from dataset import YelpFeatureDataset
+from model import MILModel
 
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
