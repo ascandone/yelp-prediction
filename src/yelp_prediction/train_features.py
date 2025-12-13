@@ -107,6 +107,6 @@ def run(
 
         if is_best_score:
             best_mae = val_mae
-            torch.save(model.state_dict(), "best_mil_model.pth")
+            torch.save(model.state_dict(), "data/best_mil_model.pth")
 
     print(f"\nTraining Complete. Best Validation MAE: {best_mae:.4f}")
