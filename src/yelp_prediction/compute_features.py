@@ -27,12 +27,7 @@ def run(*, save_to_disk: bool = True):
 
     print(f"Using device: {DEVICE}")
 
-    # 1. Load Data
-    print("Loading photo list...")
-    df_photos = pl.scan_ndjson(dataframes.PHOTOS_DIR / "photos.json").collect()
-    print(f"Found {len(df_photos)} photos to process.")
-
-    # 2. Setup Model (Backbone Only)
+    # Setup Model (Backbone Only)
     print("Loading EfficientNetV2-S...")
     full_model = models.efficientnet_v2_s(
         weights=models.EfficientNet_V2_S_Weights.DEFAULT
@@ -44,10 +39,10 @@ def run(*, save_to_disk: bool = True):
     # Global pooling layer to flatten [B, 1280, 7, 7] -> [B, 1280]
     pool = torch.nn.AdaptiveAvgPool2d(1)
 
-    # 3. Setup Loader
+    # Setup Loader
     dataset = RawPhotoDataset(
-        df_photos,
-        dataframes.PHOTOS_DIR / "photos",
+        photo_df=dataframes.q_photos.collect(),
+        photo_dir=dataframes.PHOTOS_DIR / "photos",
     )
     loader = DataLoader(
         dataset,
@@ -57,7 +52,7 @@ def run(*, save_to_disk: bool = True):
         collate_fn=collate_fn,
     )
 
-    # 4. Inference Loop
+    # Inference Loop
     print("Starting extraction...")
     features_dict = {}
 
@@ -67,15 +62,8 @@ def run(*, save_to_disk: bool = True):
                 continue
 
             imgs = imgs.to(DEVICE)
-
-            # Forward Pass
-            # Shape: [B, 1280, 7, 7]
             features = backbone(imgs)
-
-            # Pool: [B, 1280, 1, 1] -> [B, 1280]
             features = pool(features).flatten(1)
-
-            # Store in memory
             for i, pid in enumerate(pids):
                 # Save as CPU tensor to save GPU memory
                 features_dict[pid] = features[i].cpu().clone()
