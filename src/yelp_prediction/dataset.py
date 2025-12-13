@@ -1,6 +1,10 @@
 import torch
 from torch.utils.data import Dataset
 import numpy as np
+import polars as pl
+from PIL import Image
+from torchvision import transforms
+from pathlib import Path
 
 
 class YelpFeatureDataset(Dataset):
@@ -49,3 +53,45 @@ class YelpFeatureDataset(Dataset):
 
         # Stack into [K, 1280] tensor
         return torch.stack(features), label
+
+
+DEFAULT_TRANSFORM = transforms.Compose(
+    [
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ]
+)
+
+
+class RawPhotoDataset(Dataset):
+    """
+    Simple dataset to just iterate over all photos for extraction.
+    Does NOT transform into bags. 1 item = 1 photo.
+    """
+
+    def __init__(
+        self,
+        photo_df: pl.DataFrame,
+        photo_dir: Path,
+        transform=DEFAULT_TRANSFORM,
+    ):
+        self.photo_ids = photo_df["photo_id"].to_list()
+        self.photo_dir = photo_dir
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.photo_ids)
+
+    def __getitem__(self, idx):
+        pid = self.photo_ids[idx]
+        path = self.photo_dir / f"{pid}.jpg"
+
+        try:
+            with Image.open(path) as img:
+                img = img.convert("RGB")
+                img = self.transform(img)
+                return img, pid
+        except Exception:
+            # Fallback to zeros (Matches Baseline YelpBagDataset)
+            return torch.zeros(3, 224, 224), pid
