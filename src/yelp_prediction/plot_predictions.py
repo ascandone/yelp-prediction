@@ -84,7 +84,7 @@ def main():
     for i, r in enumerate(val_rows):
         photo_ids = r.get("photo_ids") or []
 
-        # Número de fotos disponibles (del bag completo)
+        # number of available photos (in the entire bag)
         n_avail = int(r.get("photo_count", len(photo_ids)))
         n_available[i] = n_avail
 
@@ -96,7 +96,7 @@ def main():
             n_used[i] = args.max_photos
         else:
             selected = rng.choice(photo_ids, size=args.max_photos, replace=True)
-            n_used[i] = n_avail  # únicas disponibles
+            n_used[i] = n_avail # we used all available
 
         feats = [features_dict.get(pid, zeros) for pid in selected]
         X[i] = torch.stack(feats)
@@ -140,7 +140,7 @@ def main():
     import matplotlib.colors as colors
     plt.figure()
 
-    # LogNorm ayuda porque photo_count suele ser heavy-tailed
+    # LogNorm helps because photo_count if often heavy-tailed
     vmax = int(max(1, n_available.max()))
     if vmax <= 1:
         norm = None
