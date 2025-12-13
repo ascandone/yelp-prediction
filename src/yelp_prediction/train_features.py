@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, WeightedRandomSampler
 from tqdm import tqdm
 import dataframes
 from YelpFeatureDataset import YelpFeatureDataset
@@ -19,6 +19,7 @@ def run(
     lr=0.001,
     max_photos=3,
     criterion=nn.MSELoss(),
+    input_dim=1280,
 ):
     """
     Train a MIL model on pre-computed features (see compute_features.py)
@@ -65,7 +66,7 @@ def run(
     )
 
     # Model Setup
-    model = MILModel(median_stars=median).to(DEVICE)
+    model = MILModel(median_stars=median, input_dim=input_dim).to(DEVICE)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
     # Train Loop
