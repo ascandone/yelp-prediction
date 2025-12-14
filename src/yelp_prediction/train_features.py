@@ -50,7 +50,6 @@ def run(
         ),
         batch_size=batch_size,
         shuffle=True,
-        num_workers=2,
     )
 
     val_loader = DataLoader(
@@ -60,7 +59,6 @@ def run(
         ),
         batch_size=batch_size,
         shuffle=False,
-        num_workers=2,
     )
 
     # Model Setup
