@@ -1,3 +1,4 @@
+from pathlib import Path
 import numpy as np
 import torch
 import torch.nn as nn
@@ -6,7 +7,7 @@ from tqdm import tqdm
 import dataframes
 from dataset import SinglePhotoDataset
 from model import SinglePhotoModel
-
+import polars as pl
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -14,7 +15,7 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 def run(
     features_dict: dict,
     *,
-    epochs=7,
+    epochs=10,
     batch_size=128,
     lr=0.001,
     max_photos=3,
@@ -68,11 +69,17 @@ def run(
     # Train Loop
     best_mae = float("inf")
 
+    validation_output = []
     for epoch in range(epochs):
         model.train()
         total_loss = 0
 
-        for feats, targets in tqdm(train_loader, desc=f"Epoch {epoch+1}", leave=False):
+        for feats, targets, _ in tqdm(
+            train_loader,
+            desc=f"Epoch {epoch+1}",
+            leave=False,
+        ):
+
             feats, targets = feats.to(DEVICE), targets.to(DEVICE)
 
             optimizer.zero_grad()
@@ -85,12 +92,18 @@ def run(
         avg_loss = total_loss / len(train_loader)
 
         # Validation
+
         model.eval()
         errors = []
         with torch.no_grad():
-            for feats, targets in val_loader:
+            for feats, targets, photo_ids in val_loader:
                 feats, targets = feats.to(DEVICE), targets.to(DEVICE)
                 preds = model(feats).squeeze()
+
+                batch_preds = preds.cpu().numpy()
+                for pid, pred in zip(photo_ids, batch_preds):
+                    validation_output.append((epoch + 1, pid, pred))
+
                 errors.extend(torch.abs(preds - targets).cpu().numpy())
 
         val_mae = np.mean(errors)
@@ -106,3 +119,13 @@ def run(
             torch.save(model.state_dict(), "data/best_model.pth")
 
     print(f"\nTraining Complete. Best Validation MAE: {best_mae:.4f}")
+
+    path = Path("data/predictions.csv")
+    print(f"Writing to '{path}'..")
+    df = pl.DataFrame(
+        validation_output,
+        schema=["epoch", "photo_id", "prediction"],
+        orient="row",
+    )
+    df.write_csv(path)
+    print("Done. ✅")

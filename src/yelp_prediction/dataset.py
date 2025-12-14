@@ -40,7 +40,7 @@ class YelpFeatureDataset(Dataset):
             selected = np.random.choice(photo_ids, self.max_photos, replace=True)
 
         features = [self.features_dict[pid] for pid in selected]
-        return torch.stack(features), label
+        return torch.stack(features), label, str(selected.tolist())
 
 
 DEFAULT_TRANSFORM = transforms.Compose(
@@ -96,8 +96,6 @@ class SinglePhotoDataset(Dataset):
     This means if a business has 5 photos, it will contribute 5 training samples.
     """
 
-    FEATURE_DIM = 1280  # EfficientNetV2-S output size (or 512 for CLIP)
-
     def __init__(
         self,
         dataframe,
@@ -125,9 +123,6 @@ class SinglePhotoDataset(Dataset):
                     }
                 )
 
-        # Pre-allocate a zero vector for missing photos
-        self.zeros = torch.zeros(SinglePhotoDataset.FEATURE_DIM)
-
     def __len__(self):
         return len(self.data)
 
@@ -137,8 +132,8 @@ class SinglePhotoDataset(Dataset):
         label = torch.tensor(item["stars"], dtype=torch.float32)
 
         # Load feature vector for this photo
-        feature = self.features_dict.get(photo_id, self.zeros)
+        feature = self.features_dict[photo_id]
 
         # Return single photo feature (not a bag)
         # Shape: [FEATURE_DIM] instead of [K, FEATURE_DIM]
-        return feature, label
+        return feature, label, photo_id
