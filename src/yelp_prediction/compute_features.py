@@ -100,7 +100,22 @@ def _setup_clip():
     return features_dict
 
 
-def run(*, save_to_disk: bool = True):
+def _get_model(model: str) -> dict:
+    match model:
+        case "clip":
+            return _setup_clip()
+        case "resnet":
+            return _setup_resnet()
+        case _:
+            # TODO it should actually emit err
+            return {}
+
+
+def run(
+    *,
+    save_to_disk: bool = True,
+    model: str = "clip",
+):
     """
     Extract features from photos and return them as a dictionary.
     By default (save_to_disk option), save the dictionary to disk.
@@ -108,7 +123,8 @@ def run(*, save_to_disk: bool = True):
 
     print(f"Using device: {DEVICE}")
 
-    features_dict = _setup_clip()
+    print(f"Setting up model: {model}")
+    features_dict = _get_model(model)
 
     print(f"\nDone! Extracted {len(features_dict)} features in memory.")
 
