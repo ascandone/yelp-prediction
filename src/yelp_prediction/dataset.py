@@ -95,3 +95,62 @@ class RawPhotoDataset(Dataset):
         except Exception:
             # Fallback to zeros (Matches Baseline YelpBagDataset)
             return torch.zeros(3, 224, 224), pid
+
+
+class SinglePhotoDataset(Dataset):
+    """
+    Dataset for single-photo prediction (non-MIL approach).
+
+    Unlike YelpFeatureDataset which returns bags of photos per business,
+    this dataset "unrolls" the data so that each item is a single photo
+    and its associated business rating.
+
+    This means if a business has 5 photos, it will contribute 5 training samples.
+    """
+
+    FEATURE_DIM = 1280  # EfficientNetV2-S output size (or 512 for CLIP)
+
+    def __init__(
+        self,
+        dataframe,
+        features_dict: dict,
+    ):
+        """
+        Args:
+            dataframe: Polars DataFrame with columns ['business_id', 'photo_ids', 'stars']
+            features_dict: Dictionary mapping photo_id -> feature tensor
+        """
+        self.features_dict = features_dict
+
+        # Unroll the data: create (photo_id, stars) pairs
+        self.data = []
+        for row in dataframe.to_dicts():
+            photo_ids = row["photo_ids"]
+            stars = row["stars"]
+
+            # Add each photo as a separate training sample
+            for photo_id in photo_ids:
+                self.data.append(
+                    {
+                        "photo_id": photo_id,
+                        "stars": stars,
+                    }
+                )
+
+        # Pre-allocate a zero vector for missing photos
+        self.zeros = torch.zeros(SinglePhotoDataset.FEATURE_DIM)
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        item = self.data[idx]
+        photo_id = item["photo_id"]
+        label = torch.tensor(item["stars"], dtype=torch.float32)
+
+        # Load feature vector for this photo
+        feature = self.features_dict.get(photo_id, self.zeros)
+
+        # Return single photo feature (not a bag)
+        # Shape: [FEATURE_DIM] instead of [K, FEATURE_DIM]
+        return feature, label

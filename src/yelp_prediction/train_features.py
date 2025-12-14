@@ -4,8 +4,8 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 import dataframes
-from dataset import YelpFeatureDataset
-from model import MILModel
+from dataset import SinglePhotoDataset
+from model import SinglePhotoModel
 
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -14,11 +14,11 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 def run(
     features_dict: dict,
     *,
-    epochs=20,
+    epochs=7,
     batch_size=128,
     lr=0.001,
     max_photos=3,
-    criterion=nn.MSELoss(),
+    criterion=nn.L1Loss(),
     input_dim=512,  # clip
 ):
     """
@@ -30,8 +30,8 @@ def run(
     median = df["stars"].median()
     baseline_mae = (df["stars"] - median).abs().mean()
     stdev = df["stars"].std()
-
     avg = df["stars"].mean()
+
     print(f"Dataset Size: {len(df)} businesses")
     print(f"Median Stars: {median:.2f} (baseline mae: {baseline_mae:.2f})")
     print(f"Avg Stars: {avg:.2f} (stdev: {stdev:.2f})")
@@ -44,10 +44,9 @@ def run(
 
     # Loaders
     train_loader = DataLoader(
-        YelpFeatureDataset(
+        SinglePhotoDataset(
             train_df,
             features_dict,
-            max_photos=max_photos,
         ),
         batch_size=batch_size,
         shuffle=True,
@@ -55,10 +54,9 @@ def run(
     )
 
     val_loader = DataLoader(
-        YelpFeatureDataset(
+        SinglePhotoDataset(
             val_df,
             features_dict,
-            max_photos=max_photos,
         ),
         batch_size=batch_size,
         shuffle=False,
@@ -66,7 +64,7 @@ def run(
     )
 
     # Model Setup
-    model = MILModel(median_stars=median, input_dim=input_dim).to(DEVICE)
+    model = SinglePhotoModel(median_stars=avg, input_dim=input_dim).to(DEVICE)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
     # Train Loop
@@ -107,6 +105,6 @@ def run(
 
         if is_best_score:
             best_mae = val_mae
-            torch.save(model.state_dict(), "data/best_mil_model.pth")
+            torch.save(model.state_dict(), "data/best_model.pth")
 
     print(f"\nTraining Complete. Best Validation MAE: {best_mae:.4f}")

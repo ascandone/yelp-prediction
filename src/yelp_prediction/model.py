@@ -35,3 +35,51 @@ class MILModel(nn.Module):
         # 3. Exact match to RatingPredictor.py Sigmoid
         # Sigmoid -> [0, 1] * 4 -> [0, 4] + 1 -> [1, 5]
         return torch.sigmoid(raw_output) * 4 + 1
+
+
+class SinglePhotoModel(nn.Module):
+    """
+    Model for single-photo prediction (non-MIL approach).
+
+    Unlike MILModel which aggregates multiple photos with mean pooling,
+    this model directly predicts from a single photo feature vector.
+    """
+
+    def __init__(
+        self,
+        *,
+        median_stars=4.0,
+        input_dim=1280,
+    ):
+        super().__init__()
+
+        # Same regression head as MILModel
+        self.head = nn.Sequential(
+            nn.Linear(input_dim, 512),
+            nn.ReLU(),
+            nn.Dropout(0.2),
+            nn.Linear(512, 1),
+        )
+
+        # Initialize bias based on median (same as MIL approach)
+        initial_bias = torch.logit(torch.tensor((median_stars - 1) / 4))
+        nn.init.constant_(self.head[-1].bias, initial_bias)
+
+    def forward(self, x):
+        """
+        Forward pass for single photo.
+
+        Args:
+            x: Feature tensor of shape [B, FEATURE_DIM]
+               (NOT [B, K, FEATURE_DIM] like in MIL)
+
+        Returns:
+            Predictions of shape [B, 1] in range [1, 5]
+        """
+        # No mean pooling needed - already single photo!
+        # Just pass through the regression head
+        raw_output = self.head(x)
+
+        # Same sigmoid scaling as MIL model
+        # Sigmoid -> [0, 1] * 4 -> [0, 4] + 1 -> [1, 5]
+        return torch.sigmoid(raw_output) * 4 + 1
