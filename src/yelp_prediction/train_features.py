@@ -14,11 +14,11 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 def run(
     features_dict: dict,
     *,
-    epochs=10,
+    epochs=7,
     batch_size=128,
     lr=0.001,
     max_photos=3,
-    criterion=nn.MSELoss(),
+    criterion=nn.L1Loss(),
     input_dim=512,  # clip
 ):
     """
@@ -64,7 +64,7 @@ def run(
     )
 
     # Model Setup
-    model = SinglePhotoModel(median_stars=median, input_dim=input_dim).to(DEVICE)
+    model = SinglePhotoModel(median_stars=avg, input_dim=input_dim).to(DEVICE)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
     # Train Loop
