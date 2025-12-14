@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 class YelpFeatureDataset(Dataset):
-    FEATURE_DIM = 1280  # EfficientNetV2-S output size
+    DEAULT_FEATURE_DIM = 512  # CLIP features dim
     DEFAULT_MAX_PHOTOS = 3
 
     def __init__(
@@ -16,14 +16,15 @@ class YelpFeatureDataset(Dataset):
         dataframe,
         features_dict: dict,
         max_photos=DEFAULT_MAX_PHOTOS,
+        feature_dim=DEAULT_FEATURE_DIM,
     ):
         self.features_dict = features_dict
         self.max_photos = max_photos
-        # Convert to dictionary for fast access
         self.data = dataframe.to_dicts()
+        self.feature_dim = feature_dim
 
         # Pre-allocate a zero vector for missing data
-        self.zeros = torch.zeros(YelpFeatureDataset.FEATURE_DIM)
+        self.zeros = torch.zeros(feature_dim)
 
     def __len__(self):
         return len(self.data)
@@ -37,7 +38,7 @@ class YelpFeatureDataset(Dataset):
         if len(photo_ids) == 0:
             # Edge case: No photos at all
             # Return a bag of zeros
-            return torch.zeros(self.max_photos, YelpFeatureDataset.FEATURE_DIM), label
+            return torch.zeros(self.max_photos, self.feature_dim), label
 
         if len(photo_ids) >= self.max_photos:
             selected = np.random.choice(photo_ids, self.max_photos, replace=False)
