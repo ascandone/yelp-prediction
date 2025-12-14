@@ -15,7 +15,7 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 def run(
     features_dict: dict,
     *,
-    epochs=10,
+    epochs=20,
     batch_size=128,
     lr=0.001,
     max_photos=3,
