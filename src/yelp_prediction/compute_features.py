@@ -1,3 +1,4 @@
+from typing import Literal
 import torch
 from torch.utils.data import DataLoader
 from torchvision import models
@@ -21,7 +22,7 @@ def _collate_fn(batch):
     return torch.stack(imgs), pids
 
 
-def _setup_resnet():
+def _setup_efficientnet_v2_s():
     full_model = models.efficientnet_v2_s(
         weights=models.EfficientNet_V2_S_Weights.DEFAULT,
     )
@@ -100,21 +101,21 @@ def _setup_clip():
     return features_dict
 
 
-def _get_model(model: str) -> dict:
+ModelType = Literal["clip"] | Literal["efficientnet-v2-s"]
+
+
+def _get_model(model: ModelType) -> dict:
     match model:
         case "clip":
             return _setup_clip()
-        case "resnet":
-            return _setup_resnet()
-        case _:
-            # TODO it should actually emit err
-            return {}
+        case "efficientnet-v2-s":
+            return _setup_efficientnet_v2_s()
 
 
 def run(
     *,
     save_to_disk: bool = True,
-    model: str = "clip",
+    model: ModelType = "clip",
 ):
     """
     Extract features from photos and return them as a dictionary.
