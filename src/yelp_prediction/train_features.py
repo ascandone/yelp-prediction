@@ -19,7 +19,7 @@ def run(
     lr=0.001,
     max_photos=3,
     criterion=nn.MSELoss(),
-    input_dim=1280,
+    input_dim=512,  # clip
 ):
     """
     Train a MIL model on pre-computed features (see compute_features.py)
