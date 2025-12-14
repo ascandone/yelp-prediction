@@ -16,15 +16,10 @@ class YelpFeatureDataset(Dataset):
         dataframe,
         features_dict: dict,
         max_photos=DEFAULT_MAX_PHOTOS,
-        feature_dim=DEAULT_FEATURE_DIM,
     ):
         self.features_dict = features_dict
         self.max_photos = max_photos
         self.data = dataframe.to_dicts()
-        self.feature_dim = feature_dim
-
-        # Pre-allocate a zero vector for missing data
-        self.zeros = torch.zeros(feature_dim)
 
     def __len__(self):
         return len(self.data)
@@ -34,25 +29,17 @@ class YelpFeatureDataset(Dataset):
         photo_ids = row["photo_ids"]
         label = torch.tensor(row["stars"], dtype=torch.float32)
 
-        # 1. SAMPLING Strategy suitable for MIL
         if len(photo_ids) == 0:
-            # Edge case: No photos at all
-            # Return a bag of zeros
-            return torch.zeros(self.max_photos, self.feature_dim), label
+            # This should be forbidden by preconditions
+            raise Exception("No photos!")
 
+        # SAMPLING Strategy suitable for MIL
         if len(photo_ids) >= self.max_photos:
             selected = np.random.choice(photo_ids, self.max_photos, replace=False)
         else:
             selected = np.random.choice(photo_ids, self.max_photos, replace=True)
 
-        # 2. LOAD TENSORS
-        features = []
-        for pid in selected:
-            # Fast in-memory lookup
-            feat = self.features_dict.get(pid, self.zeros)
-            features.append(feat)
-
-        # Stack into [K, 1280] tensor
+        features = [self.features_dict[pid] for pid in selected]
         return torch.stack(features), label
 
 
