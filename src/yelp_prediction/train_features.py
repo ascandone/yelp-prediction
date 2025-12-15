@@ -44,13 +44,58 @@ def run(
     val_df = df.filter(~mask)
 
     # Loaders
+    train_ds = SinglePhotoDataset(
+        train_df,
+        features_dict,
+    )
+
+    # --- WeightedRandomSampler Implementation ---
+    # 1. Extract targets (stars) from the dataset
+    targets = []
+    for item in train_ds.data:
+        targets.append(item["stars"])
+    targets = np.array(targets)
+
+    # 2. Bin targets to integers for class weighting
+    # Rounding: 1.0-1.49 -> 1, 1.5-2.49 -> 2, etc.
+    # But effectively just round() works fine for simple buckets.
+    # Note: Yelp stars are often 1.0, 1.5, 2.0...
+    # Let's treat unique values as classes or just bins.
+    # Simple approach: Round to nearest int: 1, 2, 3, 4, 5
+    dataset_classes = np.round(targets).astype(int)
+
+    # 3. Calculate weight for each class
+    class_counts = np.bincount(dataset_classes)
+    # Avoid division by zero if a class is missing (though unlikely)
+    # Set weight 0 for index 0 (not used)
+    class_weights = np.zeros_like(class_counts, dtype=np.float32)
+
+    # Compute inverse frequency
+    # We only care about indices 1..5
+    for c in range(1, len(class_counts)):
+        if class_counts[c] > 0:
+            class_weights[c] = 1.0 / class_counts[c]
+
+    # 4. Assign weight to each sample
+    sample_weights = class_weights[dataset_classes]
+
+    from torch.utils.data import WeightedRandomSampler
+
+    sampler = WeightedRandomSampler(
+        weights=torch.from_numpy(sample_weights),
+        num_samples=len(sample_weights),
+        replacement=True,
+    )
+
+    print("Using WeightedRandomSampler to balance classes:")
+    print(f"Class Counts: {dict(enumerate(class_counts))}")
+    print(f"Class Weights: {dict(enumerate(np.round(class_weights, 4)))}")
+
     train_loader = DataLoader(
-        SinglePhotoDataset(
-            train_df,
-            features_dict,
-        ),
+        train_ds,
         batch_size=batch_size,
-        shuffle=True,
+        shuffle=False,  # Mutually exclusive with sampler
+        sampler=sampler,
     )
 
     val_loader = DataLoader(
