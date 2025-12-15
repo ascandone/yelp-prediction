@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Rating } from "@/components/ui/rating";
+import { AnimatePresence, motion } from "motion/react";
 
 interface FileUploadItem extends FileWithPreview {
   progress: number;
@@ -239,43 +240,50 @@ export default function ProgressUpload({
       {/* File List */}
       {uploadFiles.length > 0 && (
         <div className="mt-4 space-y-3">
-          {[...uploadFiles].reverse().map((fileItem) => (
-            <div
-              key={fileItem.id}
-              className="rounded-lg border border-border bg-card p-4"
-            >
-              <div className="flex items-start gap-2.5">
-                {/* File Icon */}
-                <div className="flex-shrink-0">
-                  {fileItem.preview &&
-                  fileItem.file.type.startsWith("image/") ? (
-                    <img
-                      src={fileItem.preview}
-                      alt={fileItem.file.name}
-                      className="h-12 w-12 rounded-lg border object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-12 w-12 items-center justify-center rounded-lg border border-border text-muted-foreground">
-                      {getFileIcon(fileItem.file)}
-                    </div>
-                  )}
-                </div>
+          <AnimatePresence initial={false} mode="popLayout">
+            {[...uploadFiles].reverse().map((fileItem) => (
+              <motion.div
+                key={fileItem.id}
+                className="rounded-lg border border-border bg-card p-4"
+                // motion stuff:
+                layout
+                initial={{ opacity: 0, scale: 0.9, y: -20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                // exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.3 }}
+              >
+                <div className="flex items-start gap-2.5">
+                  {/* File Icon */}
+                  <div className="flex-shrink-0">
+                    {fileItem.preview &&
+                    fileItem.file.type.startsWith("image/") ? (
+                      <img
+                        src={fileItem.preview}
+                        alt={fileItem.file.name}
+                        className="h-12 w-12 rounded-lg border object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-12 w-12 items-center justify-center rounded-lg border border-border text-muted-foreground">
+                        {getFileIcon(fileItem.file)}
+                      </div>
+                    )}
+                  </div>
 
-                {/* File Info */}
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between mt-0.75">
-                    <p className="inline-flex flex-col justify-center gap-1 truncate font-medium">
-                      <span className="text-sm">{fileItem.file.name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {formatBytes(fileItem.file.size)}
-                      </span>
-                    </p>
-                    <div className="flex items-center gap-2">
-                      {fileItem.rating === undefined ? null : (
-                        <Rating rating={fileItem.rating} />
-                      )}
-                      {/* Remove Button */}
-                      {/* <Button
+                  {/* File Info */}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between mt-0.75">
+                      <p className="inline-flex flex-col justify-center gap-1 truncate font-medium">
+                        <span className="text-sm">{fileItem.file.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {formatBytes(fileItem.file.size)}
+                        </span>
+                      </p>
+                      <div className="flex items-center gap-2">
+                        {fileItem.rating === undefined ? null : (
+                          <Rating rating={fileItem.rating} />
+                        )}
+                        {/* Remove Button */}
+                        {/* <Button
                         onClick={() => removeUploadFile(fileItem.id)}
                         variant="ghost"
                         size="icon"
@@ -283,43 +291,44 @@ export default function ProgressUpload({
                       >
                         <XIcon className="size-4" />
                       </Button> */}
+                      </div>
                     </div>
+                    {/* Progress Bar */}
+                    {fileItem.status === "uploading" && (
+                      <div className="mt-2">
+                        <Progress value={fileItem.progress} className="h-1" />
+                      </div>
+                    )}
+                    {/* Error Message */}
+                    {fileItem.status === "error" && fileItem.error && (
+                      <Alert
+                        variant="destructive"
+                        appearance="light"
+                        className="items-center gap-1.5 mt-2 px-2 py-1"
+                      >
+                        <AlertIcon>
+                          <TriangleAlert className="size-4!" />
+                        </AlertIcon>
+                        <AlertTitle className="text-xs">
+                          {fileItem.error}
+                        </AlertTitle>
+                        <AlertToolbar>
+                          <Button
+                            onClick={() => retryUpload(fileItem.id)}
+                            variant="ghost"
+                            size="icon"
+                            className="size-6 text-muted-foreground hover:opacity-100 hover:bg-transparent"
+                          >
+                            <RefreshCwIcon className="size-3.5" />
+                          </Button>
+                        </AlertToolbar>
+                      </Alert>
+                    )}
                   </div>
-                  {/* Progress Bar */}
-                  {fileItem.status === "uploading" && (
-                    <div className="mt-2">
-                      <Progress value={fileItem.progress} className="h-1" />
-                    </div>
-                  )}
-                  {/* Error Message */}
-                  {fileItem.status === "error" && fileItem.error && (
-                    <Alert
-                      variant="destructive"
-                      appearance="light"
-                      className="items-center gap-1.5 mt-2 px-2 py-1"
-                    >
-                      <AlertIcon>
-                        <TriangleAlert className="size-4!" />
-                      </AlertIcon>
-                      <AlertTitle className="text-xs">
-                        {fileItem.error}
-                      </AlertTitle>
-                      <AlertToolbar>
-                        <Button
-                          onClick={() => retryUpload(fileItem.id)}
-                          variant="ghost"
-                          size="icon"
-                          className="size-6 text-muted-foreground hover:opacity-100 hover:bg-transparent"
-                        >
-                          <RefreshCwIcon className="size-3.5" />
-                        </Button>
-                      </AlertToolbar>
-                    </Alert>
-                  )}
                 </div>
-              </div>
-            </div>
-          ))}
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
       )}
 
