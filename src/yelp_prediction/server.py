@@ -6,7 +6,7 @@ from transformers import CLIPModel, CLIPProcessor
 import uvicorn
 from model import SinglePhotoModel
 from fastapi import FastAPI, File, UploadFile
-
+from fastapi.middleware.cors import CORSMiddleware
 
 # TODO get from env
 MODEL_PATH = Path("data/best_model.pth")
@@ -43,6 +43,16 @@ def _predict(post_data: bytes) -> float:
 
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.post("/predict")
