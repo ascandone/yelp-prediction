@@ -21,7 +21,10 @@ q_reviews = pl.scan_ndjson(PATH_REVIEWS)
 
 q_photos = pl.scan_ndjson(PHOTOS_DIR / "photos.json")
 
-q_restaurants = q_businesses.filter(pl.col("categories").str.contains("Restaurants"))
+q_restaurants = q_businesses.filter(
+    pl.col("categories").str.contains("Restaurants"),
+    pl.col("review_count") >= 10,
+)
 
 # Queries
 
