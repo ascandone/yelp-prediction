@@ -13,12 +13,11 @@ class MILModel(nn.Module):
         super().__init__()
 
 
-        # Attention network
-        self.attention = nn.Sequential(
-            nn.Linear(input_dim, attention_dim),
-            nn.Tanh(),
-            nn.Linear(attention_dim, 1)
-        )
+        # Gated Attention
+        self.attention_v = nn.Sequential(nn.Linear(input_dim, attention_dim), nn.Tanh())
+        self.attention_u = nn.Sequential(nn.Linear(input_dim, attention_dim), nn.Sigmoid())
+        self.attention_weights = nn.Linear(attention_dim, 1)
+
 
         # Simple Regression Head
         self.head = nn.Sequential(
@@ -40,20 +39,35 @@ class MILModel(nn.Module):
         nn.init.constant_(self.head[-1].bias, init_bias)
 
     def forward(self, x):
-        # 1. MEAN POOLING (The "Bag" Aggregation)
-        # Average across the K photos dimension
-        # bag_feature = torch.mean(x, dim=1)
+       # x shape: [batch, num_photos, input_dim]
 
-        # 1. trying attention pooling instead
-        scores = self.attention(x)
-        weights = torch.softmax(scores, dim=1)
-        bag_feature = (weights * x).sum(dim=1)
+        # 1. Calcolo i due rami dell'attenzione
+        v = self.attention_v(x) # [batch, photos, attention_dim]
+        u = self.attention_u(x) # [batch, photos, attention_dim]
+    
+        # 2. Gated mechanism: moltiplicazione elemento per elemento
+        # Questo permette al modello di "chiudere" il cancello sulle foto inutili
+        gated_attention = v * u 
+    
+        # 3. Trasformo in punteggi (scores)
+        scores = self.attention_weights(gated_attention) # [batch, photos, 1]
 
-        # 2. Regression
+        # --- AGGIUNTA FONDAMENTALE: MASKING PER IL PADDING ---
+        # Creiamo una maschera che è True dove i vettori sono tutti zero (padding)
+        # Sommiamo i valori assoluti delle feature: se è 0, è padding.
+        mask = (x.abs().sum(dim=-1) == 0).unsqueeze(-1) 
+        # Mettiamo un valore molto basso (-inf) dove c'è padding per azzerare il Softmax
+        scores = scores.masked_fill(mask, -1e9) 
+        # -----------------------------------------------------
+
+        # 4. Softmax per ottenere i pesi (somma = 1)
+        weights = torch.softmax(scores, dim=1) # [batch, photos, 1]
+
+        # 5. Aggregazione (Bag Feature)
+        bag_feature = (weights * x).sum(dim=1) # [batch, input_dim]
+
+        # 6. Regressione finale
         raw_output = self.head(bag_feature)
-
-        # 3. Exact match to RatingPredictor.py Sigmoid
-        # Sigmoid -> [0, 1] * 4 -> [0, 4] + 1 -> [1, 5]
         return torch.sigmoid(raw_output) * 4 + 1
 
 class SinglePhotoModel(nn.Module):

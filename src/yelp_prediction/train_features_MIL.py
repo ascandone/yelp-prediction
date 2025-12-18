@@ -2,16 +2,14 @@ from pathlib import Path
 import numpy as np
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, WeightedRandomSampler
 from tqdm import tqdm
 import polars as pl
-from model import MILModel  # Assumendo che sia già aggiornato con init_rating e attention pooling
+from model import MILModel  
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# ---------------------------
-# Dataset wrapper
-# ---------------------------
+
 class SinglePhotoMILDataset(Dataset):
     def __init__(self, df: pl.DataFrame, features_dict: dict, max_photos=3, input_dim=512):
         self.business_ids = df["business_id"].to_list()
@@ -30,39 +28,68 @@ class SinglePhotoMILDataset(Dataset):
         feats_list = self.features_dict.get(bid, [])
         feats_list = feats_list[:self.max_photos]
 
-        # padding se necessario
-        feats_list = [
-            f if isinstance(f, list) else [float(x) for x in f]
-            for f in feats_list
-        ]
-        feats_list += [[0.0]*self.input_dim] * (self.max_photos - len(feats_list))
-        feats_tensor = torch.tensor(feats_list, dtype=torch.float32)  # (max_photos, input_dim)
+        if len(feats_list) > 0:
+            current_feats = torch.stack(feats_list)
+        else:
+            current_feats = torch.zeros((0, self.input_dim))
+
+       
+        padding_size = self.max_photos - current_feats.size(0)
+        if padding_size > 0:
+            padding = torch.zeros((padding_size, self.input_dim))
+            feats_tensor = torch.cat([current_feats, padding], dim=0)
+        else:
+            feats_tensor = current_feats
 
         return feats_tensor, torch.tensor(target, dtype=torch.float32), bid
 
-# ---------------------------
-# Training MIL
-# ---------------------------
-def run(features_dict: dict, yelp_df: pl.DataFrame, *, epochs=20, batch_size=128, lr=0.001, max_photos=3, input_dim=512, attention_dim=256):
-    # ---------------------------
-    # Split train/val
-    # ---------------------------
+
+def run_MIL(features_dict: dict, yelp_df: pl.DataFrame, *, epochs=20, batch_size=128, lr=0.0001, max_photos=3, input_dim=512, attention_dim=256):
+    
     np.random.seed(42)
     mask = np.random.rand(len(yelp_df)) < 0.8
     train_df = yelp_df.filter(mask)
     val_df = yelp_df.filter(~mask)
 
     train_avg = train_df["stars"].mean()
+    baseline_errors = (val_df["stars"] - train_avg).abs()
+    baseline_mae = baseline_errors.mean()
+
+
+    print("-" * 30)
+    print(f" ANALISI BASELINE")
+    print(f"Media stelle (Train): {train_avg:.4f}")
+    print(f"Baseline MAE: {baseline_mae:.4f} (Senza usare le foto)")
+    print(f"Miglior MAE del tuo Modello: 0.4619")
+    print("-" * 30)
+
+    improvement = ((baseline_mae - 0.4619) / baseline_mae) * 100
+    print(f"Miglioramento rispetto alla statistica: {improvement:.2f}%")
+
     print(f"Train: {len(train_df)} businesses, Avg stars: {train_avg:.4f}")
     print(f"Validation: {len(val_df)} businesses")
 
-    # ---------------------------
-    # DataLoaders
-    # ---------------------------
+
+    
+    y_train = train_df["stars"].to_numpy()
+    y_train_rounded = np.round(y_train).astype(int)
+
+    class_counts = np.bincount(y_train_rounded)
+    class_counts = np.where(class_counts == 0, 1, class_counts) 
+
+
+    weights_per_class = 1. / np.sqrt(class_counts)  
+    sample_weights = weights_per_class[y_train_rounded]
+    sample_weights = torch.from_numpy(sample_weights).double()
+
+    sampler = WeightedRandomSampler(weights=sample_weights, num_samples=len(sample_weights), replacement=True)
+
+ 
     train_loader = DataLoader(
         SinglePhotoMILDataset(train_df, features_dict, max_photos=max_photos, input_dim=input_dim),
         batch_size=batch_size,
-        shuffle=True
+        sampler = sampler,
+        shuffle=False
     )
     val_loader = DataLoader(
         SinglePhotoMILDataset(val_df, features_dict, max_photos=max_photos, input_dim=input_dim),
@@ -70,25 +97,27 @@ def run(features_dict: dict, yelp_df: pl.DataFrame, *, epochs=20, batch_size=128
         shuffle=False
     )
 
-    # ---------------------------
-    # Model & optimizer
-    # ---------------------------
+   
     model = MILModel(init_rating=float(train_avg), input_dim=input_dim, attention_dim=attention_dim).to(DEVICE)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-    criterion = nn.SmoothL1Loss()
+    criterion = nn.SmoothL1Loss(beta = 0.5)
 
     best_mae = float("inf")
     validation_output = []
 
-    # ---------------------------
-    # Training loop
-    # ---------------------------
+
     for epoch in range(epochs):
         model.train()
         total_loss = 0
 
         for feats, targets, _ in tqdm(train_loader, desc=f"Epoch {epoch+1}", leave=False):
             feats, targets = feats.to(DEVICE), targets.to(DEVICE)
+            
+            if model.training:
+
+                noise = torch.randn_like(feats) * 0.01 
+                feats = feats + noise
+
 
             optimizer.zero_grad()
             preds = model(feats).squeeze()
@@ -99,9 +128,6 @@ def run(features_dict: dict, yelp_df: pl.DataFrame, *, epochs=20, batch_size=128
 
         avg_loss = total_loss / len(train_loader)
 
-        # ---------------------------
-        # Validation
-        # ---------------------------
         model.eval()
         errors = []
         with torch.no_grad():
@@ -126,9 +152,6 @@ def run(features_dict: dict, yelp_df: pl.DataFrame, *, epochs=20, batch_size=128
 
     print(f"\nTraining complete. Best Validation MAE: {best_mae:.4f}")
 
-    # ---------------------------
-    # Save predictions
-    # ---------------------------
     out_path = Path("data/predictions.csv")
     pl.DataFrame(validation_output, schema=["epoch", "photo_id", "prediction"], orient="row").write_csv(out_path)
     print(f"Predictions saved to {out_path}")
