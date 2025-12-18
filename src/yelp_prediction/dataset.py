@@ -113,6 +113,7 @@ class SinglePhotoDataset(Dataset):
         for row in dataframe.to_dicts():
             photo_ids = row["photo_ids"]
             stars = row["stars"]
+            business_id = row["business_id"]
 
             # Add each photo as a separate training sample
             for photo_id in photo_ids:
@@ -120,6 +121,7 @@ class SinglePhotoDataset(Dataset):
                     {
                         "photo_id": photo_id,
                         "stars": stars,
+                        "business_id": business_id,
                     }
                 )
 
@@ -129,6 +131,7 @@ class SinglePhotoDataset(Dataset):
     def __getitem__(self, idx):
         item = self.data[idx]
         photo_id = item["photo_id"]
+        business_id = item["business_id"]
         label = torch.tensor(item["stars"], dtype=torch.float32)
 
         # Load feature vector for this photo
@@ -136,4 +139,4 @@ class SinglePhotoDataset(Dataset):
 
         # Return single photo feature (not a bag)
         # Shape: [FEATURE_DIM] instead of [K, FEATURE_DIM]
-        return feature, label, photo_id
+        return feature, label, photo_id, business_id
