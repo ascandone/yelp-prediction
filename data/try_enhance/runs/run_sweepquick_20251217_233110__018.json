@@ -1,0 +1,36 @@
+{
+  "config": {
+    "model_tag": "clip",
+    "features_path": "data\\features\\features-clip.pt",
+    "head": "mlp",
+    "mlp_dims": [
+      1024,
+      512
+    ],
+    "act": "relu",
+    "dropout": 0.2,
+    "bounded": true,
+    "l2norm": false,
+    "epochs": 20,
+    "batch_size": 128,
+    "lr": 0.001,
+    "weight_decay": 0.01,
+    "loss": "mae",
+    "optimizer": "adamw",
+    "scheduler": "none",
+    "patience": 5,
+    "split_seed": 42,
+    "train_frac": 0.8,
+    "max_photos_per_business": 0,
+    "num_workers": 0,
+    "device": "cpu",
+    "tag": "sweepquick_20251217_233110",
+    "run_name": "sweepquick_20251217_233110__018"
+  },
+  "best_val": {
+    "mae": 0.38370153307914734,
+    "rmse": 0.502930760383606
+  },
+  "model_path": "data\\try_enhance\\models\\best_sweepquick_20251217_233110__018.pth",
+  "pred_path": "data\\try_enhance\\preds\\val_preds_sweepquick_20251217_233110__018.csv"
+}
