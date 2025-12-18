@@ -1,0 +1,36 @@
+{
+  "config": {
+    "model_tag": "clip",
+    "features_path": "data\\features\\features-clip.pt",
+    "head": "mlp",
+    "mlp_dims": [
+      1024,
+      512
+    ],
+    "act": "gelu",
+    "dropout": 0.3,
+    "bounded": true,
+    "l2norm": false,
+    "epochs": 20,
+    "batch_size": 128,
+    "lr": 0.0005,
+    "weight_decay": 0.01,
+    "loss": "mae",
+    "optimizer": "adamw",
+    "scheduler": "none",
+    "patience": 5,
+    "split_seed": 42,
+    "train_frac": 0.8,
+    "max_photos_per_business": 0,
+    "num_workers": 0,
+    "device": "cpu",
+    "tag": "",
+    "run_name": "clip__headmlp__dims1024-512__actgelu__do0p3__b1__lossmae__optadamw__wd0p01__lr0p0005__l20__seed42__tf0p8__mpb0__pat5"
+  },
+  "best_val": {
+    "mae": 0.3813658356666565,
+    "rmse": 0.5021824836730957
+  },
+  "model_path": "data\\try_enhance\\models\\best_clip__headmlp__dims1024-512__actgelu__do0p3__b1__lossmae__optadamw__wd0p01__lr0p0005__l20__seed42__tf0p8__mpb0__pat5.pth",
+  "pred_path": "data\\try_enhance\\preds\\val_preds_clip__headmlp__dims1024-512__actgelu__do0p3__b1__lossmae__optadamw__wd0p01__lr0p0005__l20__seed42__tf0p8__mpb0__pat5.csv"
+}

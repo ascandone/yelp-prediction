@@ -1,0 +1,33 @@
+{
+  "config": {
+    "model_tag": "clip",
+    "features_path": "data\\features\\features-clip.pt",
+    "head": "default",
+    "mlp_dims": [
+      1024,
+      512
+    ],
+    "act": "relu",
+    "dropout": 0.3,
+    "bounded": true,
+    "l2norm": false,
+    "epochs": 20,
+    "batch_size": 128,
+    "lr": 0.001,
+    "weight_decay": 0.0,
+    "loss": "mae",
+    "optimizer": "adam",
+    "scheduler": "none",
+    "split_seed": 42,
+    "train_frac": 0.8,
+    "max_photos_per_business": 0,
+    "num_workers": 0,
+    "device": "cpu"
+  },
+  "best_val": {
+    "mae": 0.387355774641037,
+    "rmse": 0.5069858431816101
+  },
+  "model_path": "data\\try_enhance\\models\\best_clip__default__dims1024-512__lr0.001.pth",
+  "pred_path": "data\\try_enhance\\preds\\val_preds_clip__default__dims1024-512__lr0.001.csv"
+}
