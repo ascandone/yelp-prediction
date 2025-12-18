@@ -47,6 +47,8 @@ def run(
     train_df = df.filter(mask)
     val_df = df.filter(~mask)
 
+    mean_stars_val = val_df["stars"].mean()
+
     # Loaders
     train_loader = DataLoader(
         SinglePhotoDataset(
@@ -69,7 +71,10 @@ def run(
     )
 
     # Model Setup
-    model = SinglePhotoModel(median_stars=avg, input_dim=input_dim).to(DEVICE)
+    model = SinglePhotoModel(
+        median_stars=mean_stars_val,  # type: ignore
+        input_dim=input_dim,
+    ).to(DEVICE)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
     # Train Loop
