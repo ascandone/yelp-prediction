@@ -11,6 +11,11 @@ import polars as pl
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+rng = np.random.default_rng(seed=42)
+
+g = torch.Generator()
+g.manual_seed(42)
+
 
 def run(
     features_dict: dict,
@@ -38,8 +43,7 @@ def run(
     print(f"Avg Stars: {avg:.2f} (stdev: {stdev:.2f})")
 
     # Split
-    np.random.seed(42)
-    mask = np.random.rand(len(df)) < 0.8
+    mask = rng.random(len(df)) < 0.8
     train_df = df.filter(mask)
     val_df = df.filter(~mask)
 
@@ -51,6 +55,7 @@ def run(
         ),
         batch_size=batch_size,
         shuffle=True,
+        generator=g,
     )
 
     val_loader = DataLoader(
@@ -60,6 +65,7 @@ def run(
         ),
         batch_size=batch_size,
         shuffle=False,
+        generator=g,
     )
 
     # Model Setup
