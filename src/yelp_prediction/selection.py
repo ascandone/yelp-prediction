@@ -21,7 +21,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--runs-dir", default="data/try_enhance/runs", help="Folder containing run_*.json files")
     ap.add_argument("--topk", type=int, default=5)
-    ap.add_argument("--sort-by", choices=["rmse", "mae"], default="rmse")
+    ap.add_argument("--sort-by", choices=["rmse", "mae"], default="mae")
     args = ap.parse_args()
 
     pattern = os.path.join(args.runs_dir, "*.json")
@@ -61,8 +61,8 @@ def main():
     best = rows[0]
     print("\nBEST:")
     print(f"  sort_by={args.sort_by}")
-    print(f"  rmse={best[0]}")
     print(f"  mae={best[1]}")
+    print(f"  rmse={best[0]}")
     print(f"  name={best[2]}")
     print(f"  file={best[3]}")
 
