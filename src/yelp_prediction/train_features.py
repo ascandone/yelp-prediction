@@ -1,13 +1,15 @@
 from pathlib import Path
+
 import numpy as np
+import polars as pl
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+
 import dataframes
 from dataset import SinglePhotoDataset
 from model import SinglePhotoModel
-import polars as pl
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -65,19 +67,13 @@ def run(
 
     # Loaders
     train_loader = DataLoader(
-        SinglePhotoDataset(
-            train_df,
-            features_dict,
-        ),
+        SinglePhotoDataset(train_df, features_dict),
         batch_size=batch_size,
         shuffle=True,
         generator=g,
     )
     val_loader = DataLoader(
-        SinglePhotoDataset(
-            val_df,
-            features_dict,
-        ),
+        SinglePhotoDataset(val_df, features_dict),
         batch_size=batch_size,
         shuffle=False,
         generator=g,
