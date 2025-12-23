@@ -32,19 +32,20 @@ def run(
     split_seed: int = 42,
     save_dir: str = "data",
 ):
-    '''
+    """
     Train a model on pre-computed photo features (see compute_features.py).
 
     Notes:
       - This script trains a SinglePhotoModel (one prediction per photo).
       - Outputs are written with `model_tag` in the filename so you can compare backbones.
-    '''
+    """
     if criterion is None:
         criterion = nn.L1Loss()
 
-    save_dir = Path(save_dir)
-    (save_dir / "models").mkdir(parents=True, exist_ok=True)
-    (save_dir / "preds").mkdir(parents=True, exist_ok=True)
+    save_dir_path = Path(save_dir)
+    (save_dir_path / "models").mkdir(parents=True, exist_ok=True)
+    (save_dir_path / "preds").mkdir(parents=True, exist_ok=True)
+    model_path = save_dir_path / "models" / f"best_model_{model_tag}.pth"
 
     # Stats
     df = dataframes.q_features.collect()
@@ -53,7 +54,9 @@ def run(
     stdev = df["stars"].std()
     avg = df["stars"].mean()
 
-    print(f"\n[train_features] model_tag={model_tag} | input_dim={input_dim} | device={DEVICE}")
+    print(
+        f"\n[train_features] model_tag={model_tag} | input_dim={input_dim} | device={DEVICE}"
+    )
     print(f"Dataset Size: {len(df)} businesses")
     print(f"Median Stars: {median:.2f} (baseline mae: {baseline_mae:.2f})")
     print(f"Avg Stars: {avg:.2f} (stdev: {stdev:.2f})\n")
@@ -95,7 +98,11 @@ def run(
         model.train()
         total_loss = 0.0
 
-        for feats, targets, _ in tqdm(train_loader, desc=f"Epoch {epoch+1}", leave=False):
+        for feats, targets, _ in tqdm(
+            train_loader,
+            desc=f"Epoch {epoch+1}",
+            leave=False,
+        ):
             feats, targets = feats.to(DEVICE), targets.to(DEVICE)
 
             optimizer.zero_grad()
@@ -121,7 +128,7 @@ def run(
 
                 diff = preds - targets
                 abs_errors.extend(torch.abs(diff).cpu().numpy())
-                sq_errors.extend((diff ** 2).cpu().numpy())
+                sq_errors.extend((diff**2).cpu().numpy())
 
                 batch_preds = preds.detach().cpu().numpy()
                 for pid, pred in zip(photo_ids, batch_preds):
@@ -142,16 +149,20 @@ def run(
             best_rmse = val_rmse
             best_epoch = epoch + 1
             best_val_output = epoch_output
-
-            model_path = save_dir / "models" / f"best_model_{model_tag}.pth"
             torch.save(model.state_dict(), model_path)
 
-    print(f"\nTraining Complete. Best Val MAE: {best_mae:.4f} | RMSE: {best_rmse:.4f} | epoch={best_epoch}")
+    print(
+        f"\nTraining Complete. Best Val MAE: {best_mae:.4f} | RMSE: {best_rmse:.4f} | epoch={best_epoch}"
+    )
 
     # Write predictions for BEST epoch only (smaller and easier to compare)
-    pred_path = save_dir / "preds" / f"predictions_{model_tag}.csv"
+    pred_path = save_dir_path / "preds" / f"predictions_{model_tag}.csv"
     print(f"Writing best-epoch predictions to '{pred_path}'..")
-    out_df = pl.DataFrame(best_val_output, schema=["photo_id", "prediction"], orient="row")
+    out_df = pl.DataFrame(
+        best_val_output,
+        schema=["photo_id", "prediction"],
+        orient="row",
+    )
     out_df.write_csv(pred_path)
     print("Done. ✅")
 
@@ -161,7 +172,7 @@ def run(
         "best_epoch": int(best_epoch),
         "best_mae": float(best_mae),
         "best_rmse": float(best_rmse),
-        "model_path": str(save_dir / "models" / f"best_model_{model_tag}.pth"),
+        "model_path": str(model_path),
         "pred_path": str(pred_path),
         "split_seed": int(split_seed),
         "epochs": int(epochs),
