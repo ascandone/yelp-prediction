@@ -47,12 +47,6 @@ def parse_args():
     p.add_argument("--batch-size", type=int, default=128)
     p.add_argument("--lr", type=float, default=1e-3)
     p.add_argument("--split-seed", type=int, default=42)
-    p.add_argument(
-        "--max-photos",
-        type=int,
-        default=5,
-        help="Kept for compatibility (SinglePhotoDataset ignores it).",
-    )
     return p.parse_args()
 
 
@@ -69,7 +63,6 @@ if __name__ == "__main__":
         epochs=args.epochs,
         batch_size=args.batch_size,
         lr=args.lr,
-        max_photos=args.max_photos,
         input_dim=INPUT_DIMS[args.model],
         split_seed=args.split_seed,
     )
