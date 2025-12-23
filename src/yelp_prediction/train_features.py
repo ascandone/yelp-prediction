@@ -91,7 +91,7 @@ def run(
     best_mae = float("inf")
     best_rmse = float("inf")
     best_epoch = -1
-    best_val_output = []  # (photo_id, prediction)
+    validation_output = []  # (epoch, photo_id, prediction)
 
     for epoch in range(epochs):
         # Train
@@ -119,7 +119,6 @@ def run(
         model.eval()
         abs_errors = []
         sq_errors = []
-        epoch_output = []
 
         with torch.no_grad():
             for feats, targets, photo_ids in val_loader:
@@ -132,7 +131,7 @@ def run(
 
                 batch_preds = preds.detach().cpu().numpy()
                 for pid, pred in zip(photo_ids, batch_preds):
-                    epoch_output.append((pid, float(pred)))
+                    validation_output.append((epoch, pid, float(pred)))
 
         val_mae = float(np.mean(abs_errors)) if abs_errors else float("nan")
         val_rmse = float(np.sqrt(np.mean(sq_errors))) if sq_errors else float("nan")
@@ -148,7 +147,6 @@ def run(
             best_mae = val_mae
             best_rmse = val_rmse
             best_epoch = epoch + 1
-            best_val_output = epoch_output
             torch.save(model.state_dict(), model_path)
 
     print(
@@ -159,8 +157,8 @@ def run(
     pred_path = save_dir_path / "preds" / f"predictions_{model_tag}.csv"
     print(f"Writing best-epoch predictions to '{pred_path}'..")
     out_df = pl.DataFrame(
-        best_val_output,
-        schema=["photo_id", "prediction"],
+        validation_output,
+        schema=["epoch", "photo_id", "prediction"],
         orient="row",
     )
     out_df.write_csv(pred_path)
