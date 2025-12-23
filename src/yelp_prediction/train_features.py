@@ -24,8 +24,7 @@ def run(
     epochs: int = 20,
     batch_size: int = 128,
     lr: float = 0.001,
-    max_photos: int = 3,  # kept for compatibility; SinglePhotoDataset ignores it
-    criterion=None,
+    criterion=nn.L1Loss(),
     input_dim: int = 512,  # clip default
     split_seed: int = 42,
     save_dir: str = "data",
@@ -37,9 +36,6 @@ def run(
       - This script trains a SinglePhotoModel (one prediction per photo).
       - Outputs are written with `model_tag` in the filename so you can compare backbones.
     """
-    if criterion is None:
-        criterion = nn.L1Loss()
-
     save_dir_path = Path(save_dir)
     (save_dir_path / "models").mkdir(parents=True, exist_ok=True)
     (save_dir_path / "preds").mkdir(parents=True, exist_ok=True)
