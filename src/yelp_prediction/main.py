@@ -17,10 +17,10 @@ INPUT_DIMS = {
 
 
 def _resolve_features_path(model: str) -> Path:
-    '''Prefer: data/features/features-<model>.pt. Fall back to legacy features.pt.'''
+    """Prefer: data/features/features-<model>.pt. Fall back to legacy features.pt."""
     candidates = [
-        Path("data/features") / f"features-{model}.pt",
-        Path("data/features") / "features.pt",
+        Path(f"data/features/features-{model}.pt"),
+        Path("data/features/features.pt"),
     ]
     for p in candidates:
         if p.exists():
@@ -33,7 +33,9 @@ def _resolve_features_path(model: str) -> Path:
 
 
 def parse_args():
-    p = argparse.ArgumentParser(description="Train rating model from precomputed photo features.")
+    p = argparse.ArgumentParser(
+        description="Train rating model from precomputed photo features."
+    )
     p.add_argument(
         "--model",
         type=str,
